@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header animate-in">
+    <div>
+        <h1 class="page-title text-danger-custom">
+            <i class="fa-solid fa-trash-can"></i> Thùng Rác
+        </h1>
+        <p class="page-subtitle">Lưu trữ tạm thời các đối tượng đã xóa mềm. Khôi phục hoặc tiêu hủy vĩnh viễn.</p>
+    </div>
+</div>
+
+<!-- ================= BẢNG 1: XƯỞNG ================= -->
+<div class="card border-0 mb-4 animate-in stagger-1">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="fa-solid fa-industry text-muted-custom"></i>
+        <span class="fw-bold">Xưởng đã xóa</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Tên Xưởng</th>
+                        <th>Thời gian xóa</th>
+                        <th>Đường dẫn rác</th>
+                        <th class="text-end pe-4">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for factory in factories %}
+                    <tr>
+                        <td class="ps-4 fw-bold deleted-text">{{ factory.name }}</td>
+                        <td><span class="mono-data text-danger-custom">{{ factory.deleted_at.strftime('%d/%m/%Y
+                                %H:%M:%S') }}</span></td>
+                        <td><code class="hash-display">{{ factory.trash_path or 'Không xác định' }}</code></td>
+                        <td class="text-end pe-4">
+                            <form action="{{ url_for('admin.restore_factory', factory_id=factory.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit" class="btn btn-sm btn-success me-1" title="Khôi phục">
+                                    <i class="fa-solid fa-rotate-left me-1"></i>Khôi phục
+                                </button>
+                            </form>
+                            <form id="hard-delete-factory-{{ factory.id }}"
+                                action="{{ url_for('admin.hard_delete_factory', factory_id=factory.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="button" class="btn btn-sm btn-danger btn-hard-delete" data-type="factory"
+                                    data-id="{{ factory.id }}" data-name="{{ factory.name }}" title="Tiêu hủy">
+                                    <i class="fa-solid fa-fire me-1"></i>Tiêu hủy
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted-custom small">Không có xưởng nào trong thùng
+                            rác.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ================= BẢNG 2: MÁY ================= -->
+<div class="card border-0 mb-4 animate-in stagger-2">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="fa-solid fa-robot text-muted-custom"></i>
+        <span class="fw-bold">Máy đã xóa</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Tên Máy</th>
+                        <th>Thuộc Xưởng</th>
+                        <th>Thời gian xóa</th>
+                        <th class="text-end pe-4">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for machine in machines %}
+                    <tr>
+                        <td class="ps-4 fw-bold deleted-text">{{ machine.name }}</td>
+                        <td class="text-muted-custom small">{{ machine.factory.name }}</td>
+                        <td><span class="mono-data text-danger-custom">{{ machine.deleted_at.strftime('%d/%m/%Y
+                                %H:%M:%S') }}</span></td>
+                        <td class="text-end pe-4">
+                            <form action="{{ url_for('admin.restore_machine', machine_id=machine.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit" class="btn btn-sm btn-success me-1" title="Khôi phục">
+                                    <i class="fa-solid fa-rotate-left me-1"></i>Khôi phục
+                                </button>
+                            </form>
+                            <form id="hard-delete-machine-{{ machine.id }}"
+                                action="{{ url_for('admin.hard_delete_machine', machine_id=machine.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="button" class="btn btn-sm btn-danger btn-hard-delete" data-type="machine"
+                                    data-id="{{ machine.id }}" data-name="{{ machine.name }}" title="Tiêu hủy">
+                                    <i class="fa-solid fa-fire me-1"></i>Tiêu hủy
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted-custom small">Không có máy nào trong thùng
+                            rác.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ================= BẢNG 3: THIẾT BỊ ================= -->
+<div class="card border-0 mb-4 animate-in stagger-3">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="fa-solid fa-microchip text-muted-custom"></i>
+        <span class="fw-bold">Thiết bị đã xóa</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Tên Thiết bị</th>
+                        <th>Thuộc Máy</th>
+                        <th>Thời gian xóa</th>
+                        <th class="text-end pe-4">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in devices %}
+                    <tr>
+                        <td class="ps-4 deleted-text">
+                            <span class="fw-bold">{{ device.name }}</span>
+                            <span class="badge badge-muted ms-1">{{ device.device_type }}</span>
+                        </td>
+                        <td class="text-muted-custom small">{{ device.machine.name }} ({{ device.machine.factory.name
+                            }})</td>
+                        <td><span class="mono-data text-danger-custom">{{ device.deleted_at.strftime('%d/%m/%Y
+                                %H:%M:%S') }}</span></td>
+                        <td class="text-end pe-4">
+                            <form action="{{ url_for('admin.restore_device', device_id=device.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit" class="btn btn-sm btn-success me-1" title="Khôi phục">
+                                    <i class="fa-solid fa-rotate-left me-1"></i>Khôi phục
+                                </button>
+                            </form>
+                            <form id="hard-delete-device-{{ device.id }}"
+                                action="{{ url_for('admin.hard_delete_device', device_id=device.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="button" class="btn btn-sm btn-danger btn-hard-delete" data-type="device"
+                                    data-id="{{ device.id }}" data-name="{{ device.name }}" title="Tiêu hủy">
+                                    <i class="fa-solid fa-fire me-1"></i>Tiêu hủy
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted-custom small">Không có thiết bị nào trong
+                            thùng rác.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ================= BẢNG 4: VERSION ================= -->
+<div class="card border-0 mb-4 animate-in stagger-4">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="fa-solid fa-code-branch text-muted-custom"></i>
+        <span class="fw-bold">Version đã xóa</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Số Version</th>
+                        <th>Thuộc Thiết bị</th>
+                        <th>Thời gian xóa</th>
+                        <th class="text-end pe-4">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for version in versions %}
+                    <tr>
+                        <td class="ps-4 deleted-text">
+                            <span class="badge badge-muted font-mono">{{ version.version_number }}</span>
+                        </td>
+                        <td class="text-muted-custom small">{{ version.device.name }} ({{ version.device.machine.name
+                            }})</td>
+                        <td><span class="mono-data text-danger-custom">{{ version.deleted_at.strftime('%d/%m/%Y
+                                %H:%M:%S') }}</span></td>
+                        <td class="text-end pe-4">
+                            <form action="{{ url_for('admin.restore_version', version_id=version.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit" class="btn btn-sm btn-success me-1" title="Khôi phục">
+                                    <i class="fa-solid fa-rotate-left me-1"></i>Khôi phục
+                                </button>
+                            </form>
+                            <form id="hard-delete-version-{{ version.id }}"
+                                action="{{ url_for('admin.hard_delete_version', version_id=version.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="button" class="btn btn-sm btn-danger btn-hard-delete" data-type="version"
+                                    data-id="{{ version.id }}" data-name="Version {{ version.version_number }}"
+                                    title="Tiêu hủy">
+                                    <i class="fa-solid fa-fire me-1"></i>Tiêu hủy
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted-custom small">Không có version nào trong
+                            thùng rác.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.btn-hard-delete').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const type = this.getAttribute('data-type');
+
+                Swal.fire({
+                    title: 'Tiêu hủy vĩnh viễn?',
+                    text: `CẢNH BÁO: Xóa "${name}" sẽ dọn sạch thư mục rác vật lý và dữ liệu Database. Không thể khôi phục!`,
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0a0e1a',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Đồng ý tiêu hủy',
+                    cancelButtonText: 'Hủy bỏ',
+                    background: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#111827' : '#ffffff',
+                    color: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#f1f5f9' : '#0f172a'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById(`hard-delete-${type}-${id}`).submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

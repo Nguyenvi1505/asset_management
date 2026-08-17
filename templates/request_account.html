@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block login_content %}
+<div class="login-page">
+    <div class="login-card animate-in" style="max-width: 480px;">
+        <div class="text-center mb-4">
+            <div class="login-logo">
+                <i class="fa-solid fa-user-plus"></i>
+            </div>
+            <h3 class="login-title">YÊU CẦU TẠO TÀI KHOẢN</h3>
+            <p class="login-subtitle">Điền thông tin bên dưới để gửi yêu cầu đến quản trị viên</p>
+        </div>
+
+        <div class="card border-0" style="box-shadow: var(--shadow-lg);">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('account_request.request_account') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">
+                            <i class="fa-solid fa-id-card text-accent"></i> Họ và tên
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="full_name" name="full_name"
+                            placeholder="VD: Nguyễn Phạm Hùng Vĩ" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">
+                            <i class="fa-solid fa-envelope text-accent"></i> Email
+                        </label>
+                        <input type="email" class="form-control form-control-lg" id="email" name="email"
+                            placeholder="VD: example@company.com" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="factory_name" class="form-label">
+                            <i class="fa-solid fa-industry text-accent"></i> Thuộc xưởng
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="factory_name" name="factory_name"
+                            placeholder="VD: Xưởng Lắp ráp A1" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="position" class="form-label">
+                            <i class="fa-solid fa-briefcase text-accent"></i> Chức vụ
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="position" name="position"
+                            placeholder="VD: Kỹ sư Tự động hóa" required>
+                    </div>
+
+                    <button type="submit" class="btn login-btn w-100 mt-2">
+                        <i class="fa-solid fa-paper-plane"></i> GỬI YÊU CẦU
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <p class="text-center mt-3">
+            <a href="{{ url_for('auth.login') }}" class="text-accent" style="text-decoration: none; font-size: 0.85rem;">
+                <i class="fa-solid fa-arrow-left"></i> Quay về trang Đăng nhập
+            </a>
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="breadcrumb-terminal mb-4 animate-in">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('factory.manage_factories') }}"><i
+                    class="fa-solid fa-industry me-1"></i>Xưởng</a></li>
+        <li class="breadcrumb-item active">{{ factory.name }}</li>
+    </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="page-header animate-in">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-robot"></i> Máy
+        </h1>
+        <p class="page-subtitle">Danh sách Máy thuộc xưởng <strong class="text-accent">{{ factory.name
+                }}</strong></p>
+    </div>
+    <div class="d-flex gap-2">
+        <!-- Ô Tìm kiếm -->
+        <div class="input-group" style="width: 240px;">
+            <span class="input-group-text border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input type="text" id="searchMachine" class="form-control border-start-0 ps-0"
+                placeholder="Tìm kiếm tên máy..." style="background-color: var(--bg-input);">
+        </div>
+        {% if current_user.role in ['admin', 'editor'] %}
+        <button class="btn btn-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#addMachineModal">
+            <i class="fa-solid fa-plus me-1"></i> Thêm Máy
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Machine Cards -->
+<div class="row g-3" id="machine-list">
+    {% for machine in machines %}
+    <div class="col-md-6 col-lg-4 machine-item animate-in stagger-{{ loop.index if loop.index <= 6 else 6 }}">
+        <div class="card card-interactive border-0 h-100">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="icon-box icon-box-emerald">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0 text-accent machine-name" style="font-size:0.95rem;">{{ machine.name }}
+                        </h5>
+                    </div>
+                    {% if current_user.role in ['admin', 'editor'] %}
+                    <div class="dropdown">
+                        <button class="btn btn-ghost" type="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><button class="dropdown-item btn-edit" data-id="{{ machine.id }}"
+                                    data-name="{{ machine.name }}" data-desc="{{ machine.description }}"
+                                    data-bs-toggle="modal" data-bs-target="#editMachineModal"><i
+                                        class="fa-solid fa-pen text-accent me-2"></i> Chỉnh sửa</button></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <form id="delete-form-{{ machine.id }}"
+                                    action="{{ url_for('machine.delete_machine', machine_id=machine.id) }}"
+                                    method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button type="button" class="dropdown-item text-danger btn-delete"
+                                        data-id="{{ machine.id }}" data-name="{{ machine.name }}"><i
+                                            class="fa-solid fa-trash me-2"></i> Xóa máy</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                <p class="text-muted-custom small mb-3" style="min-height: 36px;">{{ machine.description or 'Không có mô
+                    tả.' }}</p>
+
+                <div class="d-flex justify-content-between align-items-center pt-3"
+                    style="border-top: 1px solid var(--border-subtle);">
+                    <span class="badge badge-muted">
+                        <i class="fa-solid fa-microchip me-1"></i> {{ machine.devices|length if machine.devices else 0
+                        }} Thiết bị
+                    </span>
+                    <a href="{{ url_for('device.manage_devices', machine_id=machine.id) }}"
+                        class="btn btn-sm btn-outline-primary">Cấu hình <i class="fa-solid fa-gear ms-1"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card border-0">
+            <div class="empty-state">
+                <i class="fa-solid fa-robot"></i>
+                <h5>Xưởng này chưa có Máy hoặc nào</h5>
+                <p>Hãy thêm máy đầu tiên để bắt đầu quản lý thiết bị.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if current_user.role in ['admin', 'editor'] %}
+<!-- Modal Thêm -->
+<div class="modal fade" id="addMachineModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-plus text-accent me-2"></i>Thêm Máy mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('machine.add_machine', factory_id=factory.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên Máy (VD: Máy T1)</label>
+                        <input type="text" class="form-control" name="name" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả đặc tính (Không bắt buộc)</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sửa -->
+<div class="modal fade" id="editMachineModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-pen text-accent me-2"></i>Cập nhật thông tin Máy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="edit-machine-form" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên Máy</label>
+                        <input type="text" class="form-control" name="name" id="edit-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Xưởng (Điều chuyển)</label>
+                        <select class="form-select" name="factory_id" id="edit-factory-id" required>
+                            {% for f in all_factories %}
+                            <option value="{{ f.id }}">{{ f.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea class="form-control" name="description" id="edit-desc" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Search
+        const searchInput = document.getElementById('searchMachine');
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                const filter = this.value.toLowerCase().trim();
+                const machineItems = document.querySelectorAll('.machine-item');
+                machineItems.forEach(item => {
+                    const machineName = item.querySelector('.machine-name').textContent.toLowerCase();
+                    if (machineName.includes(filter)) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Edit
+        document.querySelectorAll('.btn-edit').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                document.getElementById('edit-name').value = this.getAttribute('data-name');
+                document.getElementById('edit-desc').value = this.getAttribute('data-desc') !== 'None' ? this.getAttribute('data-desc') : '';
+                document.getElementById('edit-factory-id').value = '{{ factory.id }}';
+                document.getElementById('edit-machine-form').action = `/machines/edit/${id}`;
+            });
+        });
+
+        // Delete
+        document.querySelectorAll('.btn-delete').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                Swal.fire({
+                    title: 'Xác nhận xóa Máy?',
+                    text: `CẢNH BÁO: Xóa "${name}" sẽ làm mất toàn bộ các thiết bị điều khiển (PLC, HMI,...) và lịch sử version bên trong nó.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ',
+                    background: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#111827' : '#ffffff',
+                    color: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#f1f5f9' : '#0f172a'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById(`delete-form-${id}`).submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

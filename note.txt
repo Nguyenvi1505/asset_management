@@ -1,0 +1,19 @@
+# ================= LOGIC CHẶN FILE TRÙNG LẶP =================
+    # Lấy phiên bản mới nhất của thiết bị này (nếu có)
+    latest_version = Version.query.filter_by(device_id=device_id).order_by(Version.created_at.desc()).first()
+    
+    if latest_version and latest_version.file_hash == file_hash:
+        # Nếu mã băm y hệt bản cũ -> Xóa file vừa lưu tạm và báo lỗi
+        os.remove(file_path)
+        flash('Tải lên thất bại: File chương trình này giống hệt phiên bản gần nhất! Không có sự thay đổi nào được ghi nhận.', 'danger')
+        return redirect(url_for('manage_versions', device_id=device_id))
+
+
+existing_version = Version.query.filter_by(device_id=device_id, file_hash=file_hash).first()
+    
+    if existing_version:
+        os.remove(file_path)
+        flash(f'Tải lên thất bại: File này giống hệt phiên bản {existing_version.version_number} từng được upload! Vui lòng không tải lại file cũ.', 'danger')
+        return redirect(url_for('manage_versions', device_id=device_id))
+    
+

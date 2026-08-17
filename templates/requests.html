@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header animate-in">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-envelope-open-text"></i> Quản lý Yêu cầu
+        </h1>
+        <p class="page-subtitle">Duyệt hoặc từ chối yêu cầu tạo tài khoản và đặt lại mật khẩu từ người dùng.</p>
+    </div>
+</div>
+
+<!-- Main Content Card -->
+<div class="card border-0 animate-in stagger-1">
+    <!-- Card Header with Tabs -->
+    <div class="card-header bg-transparent border-bottom pt-3 pb-0 px-4">
+        <ul class="nav nav-tabs card-header-tabs" id="requestsTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active px-4 py-3 fw-medium" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab">
+                    <i class="fa-solid fa-user-plus me-2 text-accent"></i>Yêu cầu Tạo TK
+                    {% set pending_acc = account_requests | selectattr('status', 'equalto', 'pending') | list | length %}
+                    {% if pending_acc > 0 %}<span class="badge badge-amber ms-2">{{ pending_acc }}</span>{% endif %}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-4 py-3 fw-medium" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" type="button" role="tab">
+                    <i class="fa-solid fa-key me-2 text-emerald"></i>Yêu cầu Đặt lại MK
+                    {% set pending_pwd = password_requests | selectattr('status', 'equalto', 'pending') | list | length %}
+                    {% if pending_pwd > 0 %}<span class="badge badge-amber ms-2">{{ pending_pwd }}</span>{% endif %}
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Card Body -->
+    <div class="card-body p-0">
+        <div class="tab-content" id="requestsTabContent">
+            
+            <!-- TAB: TẠO TK -->
+            <div class="tab-pane fade show active" id="account" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Họ và tên</th>
+                                <th>Email</th>
+                                <th>Xưởng</th>
+                                <th>Chức vụ</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày gửi</th>
+                                <th class="text-end pe-4">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in account_requests %}
+                            <tr>
+                                <td class="ps-4 fw-bold">{{ req.full_name }}</td>
+                                <td>
+                                    <a href="mailto:{{ req.email }}" class="text-accent" style="text-decoration: none;">
+                                        {{ req.email }}
+                                    </a>
+                                </td>
+                                <td>{{ req.factory_name }}</td>
+                                <td>{{ req.position }}</td>
+                                <td>
+                                    {% if req.status == 'pending' %}
+                                    <span class="badge badge-amber">
+                                        <i class="fa-solid fa-clock me-1"></i>Chờ duyệt
+                                    </span>
+                                    {% elif req.status == 'approved' %}
+                                    <span class="badge badge-green">
+                                        <i class="fa-solid fa-circle-check me-1"></i>Đã duyệt
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-muted">
+                                        <i class="fa-solid fa-circle-xmark me-1"></i>Đã từ chối
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted-custom font-mono" style="font-size: 0.8rem;">
+                                    {{ req.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                </td>
+                                <td class="text-end pe-4">
+                                    {% if req.status == 'pending' %}
+                                    <button class="btn btn-sm btn-outline-success me-1 btn-approve"
+                                        title="Duyệt và tạo tài khoản"
+                                        data-id="{{ req.id }}" data-name="{{ req.full_name }}">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <form action="{{ url_for('account_request.reject_request', req_id=req.id) }}"
+                                        method="POST" class="d-inline" id="reject-form-{{ req.id }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-reject"
+                                            title="Từ chối yêu cầu"
+                                            data-id="{{ req.id }}" data-name="{{ req.full_name }}">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </form>
+                                    {% elif req.status == 'approved' and req.generated_username %}
+                                    <span class="font-mono text-accent" style="font-size: 0.8rem;" title="Tài khoản đã tạo">
+                                        <i class="fa-solid fa-user me-1"></i>{{ req.generated_username }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted-custom small">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    <i class="fa-solid fa-inbox"></i>
+                                    <h5>Chưa có yêu cầu nào</h5>
+                                    <p>Không có yêu cầu tạo tài khoản nào cần duyệt.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: ĐẶT LẠI MK -->
+            <div class="tab-pane fade" id="password" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Tài khoản</th>
+                                <th>Email liên hệ</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày gửi</th>
+                                <th class="text-end pe-4">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in password_requests %}
+                            <tr>
+                                <td class="ps-4 fw-bold text-accent">{{ req.username }}</td>
+                                <td>
+                                    <a href="mailto:{{ req.email }}" class="text-accent" style="text-decoration: none;">
+                                        {{ req.email }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if req.status == 'pending' %}
+                                    <span class="badge badge-amber">
+                                        <i class="fa-solid fa-clock me-1"></i>Chờ duyệt
+                                    </span>
+                                    {% elif req.status == 'approved' %}
+                                    <span class="badge badge-green">
+                                        <i class="fa-solid fa-circle-check me-1"></i>Đã duyệt
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-muted">
+                                        <i class="fa-solid fa-circle-xmark me-1"></i>Đã từ chối
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted-custom font-mono" style="font-size: 0.8rem;">
+                                    {{ req.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                </td>
+                                <td class="text-end pe-4">
+                                    {% if req.status == 'pending' %}
+                                    <button class="btn btn-sm btn-outline-success me-1 btn-approve-pwd"
+                                        title="Duyệt và cấp lại mật khẩu"
+                                        data-id="{{ req.id }}" data-name="{{ req.username }}">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                    <form action="{{ url_for('account_request.reject_password_request', req_id=req.id) }}"
+                                        method="POST" class="d-inline" id="reject-pwd-form-{{ req.id }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-reject-pwd"
+                                            title="Từ chối yêu cầu"
+                                            data-id="{{ req.id }}" data-name="{{ req.username }}">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted-custom small">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="empty-state">
+                                    <i class="fa-solid fa-inbox"></i>
+                                    <h5>Chưa có yêu cầu nào</h5>
+                                    <p>Không có yêu cầu đặt lại mật khẩu nào cần duyệt.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const csrfToken = '{{ csrf_token() }}';
+    const serverUrl = '{{ server_url }}';
+    const isDark = () => document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const swalTheme = () => ({
+        background: isDark() ? '#111827' : '#ffffff',
+        color: isDark() ? '#f1f5f9' : '#0f172a'
+    });
+
+    // ===== LƯU TRẠNG THÁI TAB =====
+    const hash = window.location.hash;
+    if (hash) {
+        const triggerEl = document.querySelector(`button[data-bs-target="${hash}"]`);
+        if (triggerEl) {
+            new bootstrap.Tab(triggerEl).show();
+        }
+    }
+
+    document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', (e) => {
+            window.history.replaceState(null, null, e.target.dataset.bsTarget);
+        });
+    });
+
+    // ===== YÊU CẦU TẠO TK =====
+    document.querySelectorAll('.btn-approve').forEach(button => {
+        button.addEventListener('click', function() {
+            const reqId = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
+
+            Swal.fire({
+                title: 'Duyệt yêu cầu?',
+                html: `Xác nhận tạo tài khoản cho <strong>"${name}"</strong>?<br><small class="text-muted">Hệ thống sẽ tự động sinh tài khoản và mật khẩu.</small>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-check"></i> Duyệt và tạo TK',
+                cancelButtonText: 'Hủy',
+                ...swalTheme()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/account-requests/approve/${reqId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            showAccountModal(data);
+                        } else {
+                            Swal.fire('Lỗi', data.error || 'Đã xảy ra lỗi.', 'error');
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ.', 'error');
+                    });
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.btn-reject').forEach(button => {
+        button.addEventListener('click', function() {
+            const reqId = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
+
+            Swal.fire({
+                title: 'Từ chối yêu cầu?',
+                text: `Bạn có chắc chắn muốn từ chối yêu cầu của "${name}" không?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Từ chối',
+                cancelButtonText: 'Hủy',
+                ...swalTheme()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(`reject-form-${reqId}`).submit();
+                }
+            });
+        });
+    });
+
+    // ===== YÊU CẦU ĐẶT LẠI MK =====
+    document.querySelectorAll('.btn-approve-pwd').forEach(button => {
+        button.addEventListener('click', function() {
+            const reqId = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
+
+            Swal.fire({
+                title: 'Cấp lại mật khẩu?',
+                html: `Xác nhận tạo mật khẩu mới cho tài khoản <strong>"${name}"</strong>?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-check"></i> Xác nhận',
+                cancelButtonText: 'Hủy',
+                ...swalTheme()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/password-requests/approve/${reqId}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            showPasswordModal(data);
+                        } else {
+                            Swal.fire('Lỗi', data.error || 'Đã xảy ra lỗi.', 'error');
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ.', 'error');
+                    });
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.btn-reject-pwd').forEach(button => {
+        button.addEventListener('click', function() {
+            const reqId = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
+
+            Swal.fire({
+                title: 'Từ chối yêu cầu?',
+                text: `Bạn có chắc chắn muốn từ chối yêu cầu cấp lại MK của tài khoản "${name}" không?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Từ chối',
+                cancelButtonText: 'Hủy',
+                ...swalTheme()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(`reject-pwd-form-${reqId}`).submit();
+                }
+            });
+        });
+    });
+
+    // ===== MODALS & EMAILS =====
+    function showAccountModal(data) {
+        const emailBody = `Xin chào ${data.full_name},\n\nTài khoản truy cập Hệ thống Quản lý Tài sản Máy của bạn đã được tạo thành công.\n\nThông tin đăng nhập:\n- Tài khoản: ${data.username}\n- Mật khẩu: ${data.password}\n- Truy cập tại: ${serverUrl}\n\nVui lòng liên hệ quản trị viên nếu cần hỗ trợ.\n\nTrân trọng.`;
+        const mailtoLink = `mailto:${data.email}?subject=${encodeURIComponent('[Asset Manager] Thông báo Tài khoản Hệ thống')}&body=${encodeURIComponent(emailBody)}`;
+
+        Swal.fire({
+            title: '<i class="fa-solid fa-circle-check" style="color:#10b981"></i> Tạo tài khoản thành công!',
+            html: `
+                <div style="text-align:left; font-size:0.9rem;">
+                    <div style="padding:16px; border-radius:10px; background:${isDark() ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.06)'}; border:1px solid ${isDark() ? 'rgba(16,185,129,0.2)' : 'rgba(16,185,129,0.15)'}; margin-bottom:16px;">
+                        <div style="margin-bottom:8px;"><strong>Họ tên:</strong> ${data.full_name}</div>
+                        <div style="margin-bottom:8px;"><strong>Email:</strong> ${data.email}</div>
+                        <div style="margin-bottom:8px;"><strong>Xưởng:</strong> ${data.factory_name}</div>
+                        <div><strong>Chức vụ:</strong> ${data.position || '—'}</div>
+                    </div>
+                    <div style="padding:16px; border-radius:10px; background:${isDark() ? 'rgba(6,182,212,0.08)' : 'rgba(6,182,212,0.06)'}; border:1px solid ${isDark() ? 'rgba(6,182,212,0.2)' : 'rgba(6,182,212,0.15)'};">
+                        <div style="margin-bottom:8px;">
+                            <strong>Tài khoản:</strong> 
+                            <code style="font-size:1.05em; color:var(--accent-cyan); background:${isDark() ? 'rgba(6,182,212,0.12)' : 'rgba(6,182,212,0.08)'}; padding:2px 8px; border-radius:4px;">${data.username}</code>
+                        </div>
+                        <div>
+                            <strong>Mật khẩu:</strong> 
+                            <code style="font-size:1.05em; color:var(--accent-emerald); background:${isDark() ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.08)'}; padding:2px 8px; border-radius:4px;">${data.password}</code>
+                        </div>
+                    </div>
+                </div>
+            `,
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-envelope"></i> Gửi Email',
+            denyButtonText: '<i class="fa-solid fa-copy"></i> Sao chép',
+            cancelButtonText: 'Đóng',
+            confirmButtonColor: '#3b82f6',
+            denyButtonColor: '#8b5cf6',
+            cancelButtonColor: '#64748b',
+            width: 520,
+            ...swalTheme()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = mailtoLink;
+                setTimeout(() => location.reload(), 500);
+            } else if (result.isDenied) {
+                navigator.clipboard.writeText(emailBody).then(() => location.reload());
+            } else {
+                location.reload();
+            }
+        });
+    }
+
+    function showPasswordModal(data) {
+        const emailBody = `Hệ thống Quản lý Tài sản Máy đã đặt lại mật khẩu cho tài khoản của bạn.\n\nTài khoản: ${data.username}\nMật khẩu mới: ${data.password}\n\nVui lòng đăng nhập tại: ${serverUrl}\nLưu ý: Hãy đổi mật khẩu ngay sau khi đăng nhập thành công.`;
+        const mailtoLink = `mailto:${data.email}?subject=${encodeURIComponent('[Asset Manager] Đặt lại mật khẩu thành công')}&body=${encodeURIComponent(emailBody)}`;
+
+        Swal.fire({
+            title: '<i class="fa-solid fa-circle-check" style="color:#10b981"></i> Đã cấp lại mật khẩu!',
+            html: `
+                <div style="text-align:center; font-size:0.9rem;">
+                    <p class="mb-2">Tài khoản: <strong class="text-accent">${data.username}</strong></p>
+                    <p class="text-muted small mb-4">Email: ${data.email}</p>
+                    <div style="padding:16px; border-radius:10px; background:${isDark() ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.06)'}; border:1px solid ${isDark() ? 'rgba(16,185,129,0.2)' : 'rgba(16,185,129,0.15)'}; mb-3">
+                        <div class="small text-muted mb-1">Mật khẩu mới</div>
+                        <code style="font-size:1.5em; color:var(--accent-emerald);">${data.password}</code>
+                    </div>
+                </div>
+            `,
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-envelope"></i> Gửi Email',
+            denyButtonText: '<i class="fa-solid fa-copy"></i> Sao chép',
+            cancelButtonText: 'Đóng',
+            confirmButtonColor: '#3b82f6',
+            denyButtonColor: '#8b5cf6',
+            cancelButtonColor: '#64748b',
+            width: 450,
+            ...swalTheme()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = mailtoLink;
+                setTimeout(() => location.reload(), 500);
+            } else if (result.isDenied) {
+                navigator.clipboard.writeText(emailBody).then(() => location.reload());
+            } else {
+                location.reload();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

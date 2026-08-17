@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header animate-in">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-gauge-high"></i> Dashboard
+        </h1>
+        <p class="page-subtitle">Chào mừng <strong>{{ current_user.username }}</strong> quay trở lại bảng điều khiển.
+        </p>
+    </div>
+</div>
+
+<!-- 4 Stat Cards -->
+<div class="row g-3 mb-4">
+    <!-- Tổng Xưởng -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-cyan border-0 h-100 animate-in stagger-1">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="stat-icon icon-cyan">
+                        <i class="fa-solid fa-industry"></i>
+                    </div>
+                    <a href="{{ url_for('factory.manage_factories') }}" class="btn btn-sm btn-ghost text-accent">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="stat-value">{{ total_factories }}</div>
+                <div class="stat-label mt-1">Tổng số Xưởng</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng Máy -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-emerald border-0 h-100 animate-in stagger-2">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="stat-icon icon-emerald">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <a href="{{ url_for('factory.manage_factories') }}" class="btn btn-sm btn-ghost text-emerald">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="stat-value">{{ total_machines }}</div>
+                <div class="stat-label mt-1">Máy</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng Thiết bị -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-amber border-0 h-100 animate-in stagger-3">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="stat-icon icon-amber">
+                        <i class="fa-solid fa-microchip"></i>
+                    </div>
+                    <span class="btn btn-sm btn-ghost text-amber" style="cursor:default;">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </span>
+                </div>
+                <div class="stat-value">{{ total_devices }}</div>
+                <div class="stat-label mt-1">Thiết bị điều khiển</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng Phiên bản -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-violet border-0 h-100 animate-in stagger-4">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="stat-icon icon-violet">
+                        <i class="fa-solid fa-code-commit"></i>
+                    </div>
+                    <span class="btn btn-sm btn-ghost text-violet" style="cursor:default;">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </span>
+                </div>
+                <div class="stat-value">{{ total_versions }}</div>
+                <div class="stat-label mt-1">Phiên bản (Versions)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lịch sử Hoạt Động Gần Đây -->
+<div class="card border-0 animate-in stagger-5">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="fa-solid fa-clock-rotate-left text-accent"></i>
+        <span class="fw-bold">Hoạt động cập nhật gần đây</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Tài sản (Thiết bị)</th>
+                        <th>Phiên bản</th>
+                        <th>File chương trình</th>
+                        <th>Người upload</th>
+                        <th class="text-end pe-4">Thời gian</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for version in recent_versions %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="icon-box icon-box-cyan" style="width:32px;height:32px;font-size:0.75rem;">
+                                    <i class="fa-solid fa-microchip"></i>
+                                </div>
+                                <div>
+                                    <a href="{{ url_for('version.manage_versions', device_id=version.device.id) }}"
+                                        class="text-decoration-none fw-bold text-accent">
+                                        {{ version.device.name }}
+                                    </a>
+                                    <div class="text-muted-custom" style="font-size:0.72rem;">
+                                        {{ version.device.machine.factory.name }} / {{ version.device.machine.name }}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-violet">{{ version.version_number }}</span></td>
+                        <td>
+                            <span class="mono-data">
+                                <i class="fa-regular fa-file-code text-muted-custom me-1"></i>
+                                {{ version.file_path.split('_', 1)[-1] }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-muted-custom" style="font-size:0.82rem;">
+                                <i class="fa-solid fa-user text-accent me-1"></i>{{ version.uploader.username }}
+                            </span>
+                        </td>
+                        <td class="text-end pe-4 text-muted-custom" style="font-size:0.78rem;">
+                            <span class="font-mono">{{ version.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i class="fa-solid fa-inbox"></i>
+                            <h5>Chưa có hoạt động</h5>
+                            <p>Chưa có hoạt động cập nhật phần mềm nào trên hệ thống.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

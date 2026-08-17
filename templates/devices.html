@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="breadcrumb-terminal mb-4 animate-in">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('factory.manage_factories') }}"><i
+                    class="fa-solid fa-industry me-1"></i>Xưởng</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('machine.manage_machines', factory_id=factory.id) }}">{{
+                factory.name }}</a></li>
+        <li class="breadcrumb-item active">{{ machine.name }}</li>
+    </ol>
+</nav>
+
+<!-- Page Header -->
+<div class="page-header animate-in">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-microchip"></i> Thiết bị điều khiển
+        </h1>
+        <p class="page-subtitle">Thiết bị thuộc máy <strong class="text-accent">{{ machine.name }}</strong></p>
+    </div>
+    <div class="d-flex gap-2">
+        <div class="input-group" style="width: 240px;">
+            <span class="input-group-text border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input type="text" id="searchDevice" class="form-control border-start-0 ps-0"
+                placeholder="Tìm kiếm thiết bị..." style="background-color: var(--bg-input);">
+        </div>
+        {% if current_user.role in ['admin', 'editor'] %}
+        <button class="btn btn-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+            <i class="fa-solid fa-plus me-1"></i> Khai báo Thiết bị
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Device Cards -->
+<div class="row g-3" id="device-list">
+    {% for device in devices %}
+    <div class="col-md-6 col-xl-4 device-item animate-in stagger-{{ loop.index if loop.index <= 6 else 6 }}">
+        <div class="card card-interactive border-0 h-100">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div
+                            class="icon-box {% if device.device_type == 'PLC' %}icon-box-cyan{% elif device.device_type == 'HMI' %}icon-box-violet{% elif device.device_type == 'Lidar' %}icon-box-emerald{% elif device.device_type == 'Servo' %}icon-box-amber{% else %}icon-box-blue{% endif %}">
+                            {% if device.device_type == 'PLC' %}
+                            <i class="fa-solid fa-server"></i>
+                            {% elif device.device_type == 'HMI' %}
+                            <i class="fa-solid fa-display"></i>
+                            {% elif device.device_type == 'Lidar' %}
+                            <i class="fa-solid fa-satellite-dish"></i>
+                            {% elif device.device_type == 'Servo' %}
+                            <i class="fa-solid fa-gear"></i>
+                            {% else %}
+                            <i class="fa-solid fa-microchip"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-accent device-name" style="font-size:0.95rem;">{{ device.name
+                                }}</h5>
+                            <span class="badge badge-muted mt-1" style="font-size:0.65rem;">{{ device.device_type
+                                }}</span>
+                        </div>
+                    </div>
+
+                    {% if current_user.role in ['admin', 'editor'] %}
+                    <div class="dropdown">
+                        <button class="btn btn-ghost" type="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><button class="dropdown-item btn-edit" data-id="{{ device.id }}"
+                                    data-name="{{ device.name }}" data-type="{{ device.device_type }}"
+                                    data-exts="{{ device.allowed_exts }}" data-desc="{{ device.description }}"
+                                    data-backup="{{ 'true' if device.requires_backup else 'false' }}"
+                                    data-bs-toggle="modal" data-bs-target="#editDeviceModal"><i
+                                        class="fa-solid fa-pen text-accent me-2"></i> Chỉnh sửa</button></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <form id="delete-form-{{ device.id }}"
+                                    action="{{ url_for('device.delete_device', device_id=device.id) }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button type="button" class="dropdown-item text-danger btn-delete"
+                                        data-id="{{ device.id }}" data-name="{{ device.name }}"><i
+                                            class="fa-solid fa-trash me-2"></i> Xóa thiết bị</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted-custom d-block mb-1" style="font-size:0.7rem;">ĐỊNH DẠNG FILE HỢP
+                        LỆ</small>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for ext in device.allowed_exts.split(',') %}
+                        <span class="ext-tag">{{ ext }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <p class="text-muted-custom small mb-3" style="min-height: 32px;">{{ device.description or 'Không có mô
+                    tả.' }}</p>
+
+                <div class="d-grid pt-3" style="border-top: 1px solid var(--border-subtle);">
+                    <a href="{{ url_for('version.manage_versions', device_id=device.id) }}"
+                        class="btn btn-primary btn-sm">
+                        <i class="fa-solid fa-code-commit me-1"></i> Version Chương trình
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card border-0">
+            <div class="empty-state">
+                <i class="fa-solid fa-microchip"></i>
+                <h5>Chưa có Thiết bị nào được khai báo cho {{ machine.name }}</h5>
+                <p>Hãy khai báo thiết bị đầu tiên để bắt đầu quản lý version.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if current_user.role in ['admin', 'editor'] %}
+<!-- Modal Thêm -->
+<div class="modal fade" id="addDeviceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-plus text-accent me-2"></i>Khai báo Thiết bị mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('device.add_device', machine_id=machine.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên Thiết bị (VD: PLC Trạm 1)</label>
+                        <input type="text" class="form-control" name="name" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phân loại Thiết bị</label>
+                        <select class="form-select" name="device_type" required>
+                            <option value="PLC">Bộ điều khiển PLC</option>
+                            <option value="HMI">Màn hình HMI</option>
+                            <option value="Servo">Động cơ Servo</option>
+                            <option value="Inverter">Biến tần (Inverter)</option>
+                            <option value="Lidar">Cảm biến Lidar</option>
+                            <option value="Other">Thiết bị khác...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Định dạng file cho phép (Phân cách bằng dấu phẩy)</label>
+                        <input type="text" class="form-control" name="allowed_exts"
+                            placeholder="VD: .cxp, .st, .zap16, .xml" required>
+                        <small class="text-muted-custom">Tính năng upload sẽ chặn các file không khớp với định dạng
+                            này.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả thêm (Tùy chọn)</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="requires_backup" id="requiresBackup">
+                        <label class="form-check-label" for="requiresBackup">Cho phép tải lên Folder Backup (định dạng .zip/.rar)</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận tạo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sửa -->
+<div class="modal fade" id="editDeviceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-pen text-accent me-2"></i>Cập nhật Thiết bị</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="edit-device-form" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên Thiết bị</label>
+                        <input type="text" class="form-control" name="name" id="edit-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phân loại</label>
+                        <select class="form-select" name="device_type" id="edit-type" required>
+                            <option value="PLC">Bộ điều khiển PLC</option>
+                            <option value="HMI">Màn hình HMI</option>
+                            <option value="Servo">Động cơ Servo</option>
+                            <option value="Inverter">Biến tần (Inverter)</option>
+                            <option value="Lidar">Cảm biến Lidar</option>
+                            <option value="Other">Thiết bị khác...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Định dạng file</label>
+                        <input type="text" class="form-control" name="allowed_exts" id="edit-exts" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea class="form-control" name="description" id="edit-desc" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="requires_backup" id="edit-requires-backup">
+                        <label class="form-check-label" for="edit-requires-backup">Cho phép tải lên Folder Backup (định dạng .zip/.rar)</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Search
+        const searchInput = document.getElementById('searchDevice');
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                const filter = this.value.toLowerCase().trim();
+                document.querySelectorAll('.device-item').forEach(item => {
+                    const name = item.querySelector('.device-name').textContent.toLowerCase();
+                    item.style.display = name.includes(filter) ? '' : 'none';
+                });
+            });
+        }
+
+        // Edit Modal
+        document.querySelectorAll('.btn-edit').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                document.getElementById('edit-name').value = this.getAttribute('data-name');
+                document.getElementById('edit-type').value = this.getAttribute('data-type');
+                document.getElementById('edit-exts').value = this.getAttribute('data-exts');
+                document.getElementById('edit-desc').value = this.getAttribute('data-desc') !== 'None' ? this.getAttribute('data-desc') : '';
+                document.getElementById('edit-requires-backup').checked = this.getAttribute('data-backup') === 'true';
+                document.getElementById('edit-device-form').action = `/devices/edit/${id}`;
+            });
+        });
+
+        // Delete
+        document.querySelectorAll('.btn-delete').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                Swal.fire({
+                    title: 'Xóa Thiết bị?',
+                    text: `CẢNH BÁO: Bạn chuẩn bị xóa thiết bị "${name}". Toàn bộ lịch sử các Version và file tải lên sẽ bị xóa sạch!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Xóa vĩnh viễn',
+                    cancelButtonText: 'Hủy',
+                    background: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#111827' : '#ffffff',
+                    color: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#f1f5f9' : '#0f172a'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById(`delete-form-${id}`).submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

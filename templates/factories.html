@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header animate-in">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-industry"></i> Xưởng Sản Xuất
+        </h1>
+        <p class="page-subtitle">Quản lý toàn bộ các xưởng sản xuất trong hệ thống.</p>
+    </div>
+    {% if current_user.role in ['admin', 'editor'] %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFactoryModal">
+        <i class="fa-solid fa-plus me-1"></i> Thêm Xưởng mới
+    </button>
+    {% endif %}
+</div>
+
+<!-- Factory Cards -->
+<div class="row g-3">
+    {% for factory in factories %}
+    <div class="col-md-6 col-lg-4 animate-in stagger-{{ loop.index if loop.index <= 6 else 6 }}">
+        <div class="card card-interactive border-0 h-100">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="icon-box icon-box-cyan">
+                            <i class="fa-solid fa-industry"></i>
+                        </div>
+                        <h5 class="fw-bold mb-0" style="font-size:0.95rem;">{{ factory.name }}</h5>
+                    </div>
+
+                    {% if current_user.role in ['admin', 'editor'] %}
+                    <div class="dropdown">
+                        <button class="btn btn-ghost" type="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><button class="dropdown-item btn-edit" data-id="{{ factory.id }}"
+                                    data-name="{{ factory.name }}" data-desc="{{ factory.description }}"
+                                    data-bs-toggle="modal" data-bs-target="#editFactoryModal"><i
+                                        class="fa-solid fa-pen text-accent me-2"></i> Chỉnh sửa</button></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <form id="delete-form-{{ factory.id }}"
+                                    action="{{ url_for('factory.delete_factory', factory_id=factory.id) }}"
+                                    method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button type="button" class="dropdown-item text-danger btn-delete"
+                                        data-id="{{ factory.id }}" data-name="{{ factory.name }}"><i
+                                            class="fa-solid fa-trash me-2"></i> Xóa xưởng</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+                <p class="text-muted-custom small mb-3" style="min-height: 36px;">{{ factory.description or 'Không có mô
+                    tả.' }}</p>
+
+                <div class="d-flex justify-content-between align-items-center pt-3"
+                    style="border-top: 1px solid var(--border-subtle);">
+                    <span class="badge badge-muted">
+                        <i class="fa-solid fa-robot me-1"></i> {{ factory.machines|length }} Máy
+                    </span>
+                    <a href="{{ url_for('machine.manage_machines', factory_id=factory.id) }}"
+                        class="btn btn-sm btn-outline-primary">Xem chi tiết <i
+                            class="fa-solid fa-arrow-right ms-1"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card border-0">
+            <div class="empty-state">
+                <i class="fa-solid fa-industry"></i>
+                <h5>Chưa có dữ liệu xưởng nào</h5>
+                <p>Hãy thêm xưởng sản xuất đầu tiên để bắt đầu quản lý.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal & Script chỉ nạp khi User có quyền -->
+{% if current_user.role in ['admin', 'editor'] %}
+<!-- Modal Thêm -->
+<div class="modal fade" id="addFactoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-plus text-accent me-2"></i>Thêm Xưởng mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('factory.add_factory') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên Xưởng (VD: Xưởng 1, Xưởng 2)</label>
+                        <input type="text" class="form-control" name="name" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả (Không bắt buộc)</label>
+                        <textarea class="form-control" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sửa -->
+<div class="modal fade" id="editFactoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-pen text-accent me-2"></i>Cập nhật Xưởng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="edit-factory-form" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên Xưởng</label>
+                        <input type="text" class="form-control" name="name" id="edit-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea class="form-control" name="description" id="edit-desc" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.btn-edit').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                document.getElementById('edit-name').value = this.getAttribute('data-name');
+                document.getElementById('edit-desc').value = this.getAttribute('data-desc') !== 'None' ? this.getAttribute('data-desc') : '';
+                document.getElementById('edit-factory-form').action = `/factories/edit/${id}`;
+            });
+        });
+
+        document.querySelectorAll('.btn-delete').forEach(button => {
+            button.addEventListener('click', function () {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                Swal.fire({
+                    title: 'Xóa Xưởng Sản Xuất?',
+                    text: `CẢNH BÁO: Xóa "${name}" sẽ xóa vĩnh viễn toàn bộ Máy, Thiết bị và Phiên bản chương trình thuộc xưởng này!`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Đồng ý xóa vĩnh viễn',
+                    cancelButtonText: 'Hủy bỏ',
+                    background: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#111827' : '#ffffff',
+                    color: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#f1f5f9' : '#0f172a'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById(`delete-form-${id}`).submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

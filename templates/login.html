@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block login_content %}
+<div class="login-page">
+    <div class="login-card animate-in">
+        <div class="text-center mb-4">
+            <div class="login-logo">
+                <i class="fa-solid fa-microchip"></i>
+            </div>
+            <h3 class="login-title">ASSET MANAGER</h3>
+            <p class="login-subtitle">Hệ thống lưu trữ & kiểm soát Version</p>
+        </div>
+
+        <div class="card border-0" style="box-shadow: var(--shadow-lg);">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('auth.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <div class="mb-4">
+                        <label for="username" class="form-label">
+                            <i class="fa-solid fa-terminal text-accent"></i> Tài khoản
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="username" name="username"
+                            placeholder="Nhập ID..." required autofocus>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">
+                            <i class="fa-solid fa-key text-accent"></i> Mật khẩu
+                        </label>
+                        <input type="password" class="form-control form-control-lg" id="password" name="password"
+                            placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn login-btn w-100 mt-2">
+                        <i class="fa-solid fa-bolt"></i> ĐĂNG NHẬP
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <p class="text-center mt-3 mb-1" style="font-size: 0.85rem;">
+            <a href="{{ url_for('account_request.request_account') }}" class="text-accent" style="text-decoration: none;">
+                <i class="fa-solid fa-user-plus me-1"></i>Chưa có tài khoản? Yêu cầu tạo tài khoản
+            </a>
+        </p>
+        <p class="text-center mt-0" style="font-size: 0.85rem;">
+            <a href="{{ url_for('account_request.forgot_password') }}" class="text-warning" style="text-decoration: none;">
+                <i class="fa-solid fa-key me-1"></i>Quên mật khẩu? Yêu cầu đặt lại
+            </a>
+        </p>
+
+        <p class="text-center mt-2 text-muted" style="font-size: 0.7rem;">
+            <i class="fa-solid fa-shield-halved"></i> Hệ thống ghi nhận mọi phiên truy cập
+        </p>
+    </div>
+</div>
+{% endblock %}

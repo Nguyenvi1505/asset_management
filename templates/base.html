@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi" data-bs-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hệ thống Quản lý Tài sản Máy — Lưu trữ và kiểm soát Version phần mềm công nghiệp">
+    <title>Quản Lý Tài Sản Máy</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+    </script>
+</head>
+
+<body>
+    {% if current_user.is_authenticated %}
+    <!-- Mobile toggle -->
+    <button class="mobile-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ====== SIDEBAR ====== -->
+    <aside class="app-sidebar" id="appSidebar">
+        <!-- Brand -->
+        <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand">
+            <div class="sidebar-brand-icon">
+                <i class="fa-solid fa-microchip"></i>
+            </div>
+            <div>
+                <div class="sidebar-brand-text">ASSET MANAGER</div>
+                <div class="sidebar-brand-sub">Industrial Version Control</div>
+            </div>
+        </a>
+
+        <!-- Navigation -->
+        <div class="sidebar-section">
+            <!-- Main group -->
+            <div class="sidebar-label">Chính</div>
+            <ul class="sidebar-nav">
+                <li class="sidebar-nav-item">
+                    <a href="{{ url_for('main.dashboard') }}"
+                        class="sidebar-nav-link {{ 'active' if request.endpoint == 'main.dashboard' }}">
+                        <i class="fa-solid fa-gauge-high"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{{ url_for('factory.manage_factories') }}"
+                        class="sidebar-nav-link {{ 'active' if request.endpoint and 'factory' in request.endpoint or request.endpoint and 'machine' in request.endpoint or request.endpoint and 'device' in request.endpoint or request.endpoint and 'version' in request.endpoint }}">
+                        <i class="fa-solid fa-industry"></i>
+                        <span>Quản lý Xưởng</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- System group (admin only) -->
+            {% if current_user.role == 'admin' %}
+            <div class="sidebar-label">Hệ thống</div>
+            <ul class="sidebar-nav">
+                <li class="sidebar-nav-item">
+                    <a href="{{ url_for('auth.manage_users') }}"
+                        class="sidebar-nav-link {{ 'active' if request.endpoint == 'auth.manage_users' }}">
+                        <i class="fa-solid fa-users-gear"></i>
+                        <span>Tài khoản</span>
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{{ url_for('account_request.manage_all_requests') }}"
+                        class="sidebar-nav-link {{ 'active' if request.endpoint == 'account_request.manage_all_requests' }}">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                        <span>Quản lý Yêu cầu</span>
+                        {% set total_requests = pending_requests_count + pending_password_requests_count %}
+                        {% if total_requests > 0 %}
+                        <span class="sidebar-badge-pending">{{ total_requests }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{{ url_for('admin.view_audit_logs') }}"
+                        class="sidebar-nav-link {{ 'active' if request.endpoint == 'admin.view_audit_logs' }}">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>Nhật ký Hệ thống</span>
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="{{ url_for('admin.recycle_bin') }}"
+                        class="sidebar-nav-link {{ 'active' if request.endpoint == 'admin.recycle_bin' }}">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Thùng rác</span>
+                    </a>
+                </li>
+                <li class="sidebar-nav-item">
+                    <a href="#" class="sidebar-nav-link sidebar-dropdown-toggle" data-bs-toggle="collapse"
+                        data-bs-target="#dataSubmenu" aria-expanded="false">
+                        <i class="fa-solid fa-database"></i>
+                        <span>Dữ liệu</span>
+                    </a>
+                    <div class="collapse" id="dataSubmenu">
+                        <ul class="sidebar-submenu">
+                            <li>
+                                <a href="{{ url_for('admin.export_system') }}" class="sidebar-nav-link">
+                                    <i class="fa-solid fa-file-export"></i>
+                                    <span>Xuất bản sao lưu</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="sidebar-nav-link" data-bs-toggle="modal"
+                                    data-bs-target="#importModal">
+                                    <i class="fa-solid fa-file-import"></i>
+                                    <span>Nhập phục hồi</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+            {% endif %}
+        </div>
+
+        <!-- User footer -->
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-avatar role-{{ current_user.role }}">
+                    {{ current_user.username[0]|upper }}
+                </div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-username">{{ current_user.username }}</div>
+                    <div class="sidebar-role">
+                        {% if current_user.role == 'admin' %}Quản trị viên
+                        {% elif current_user.role == 'editor' %}Biên tập viên
+                        {% else %}Người xem{% endif %}
+                    </div>
+                </div>
+                <div class="sidebar-actions">
+                    <button id="theme-toggler" class="sidebar-action-btn" title="Chuyển đổi giao diện">
+                        <i class="fa-solid fa-moon" id="theme-icon"></i>
+                    </button>
+                    <a href="{{ url_for('auth.logout') }}" class="sidebar-action-btn btn-logout" title="Đăng xuất">
+                        <i class="fa-solid fa-power-off"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ====== MAIN CONTENT ====== -->
+    <main class="app-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show animate-fade" role="alert">
+            {% if category == 'success' %}<i class="fa-solid fa-circle-check me-1"></i>
+            {% elif category == 'danger' %}<i class="fa-solid fa-circle-xmark me-1"></i>
+            {% elif category == 'warning' %}<i class="fa-solid fa-triangle-exclamation me-1"></i>
+            {% else %}<i class="fa-solid fa-circle-info me-1"></i>{% endif %}
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Modal Import Hệ thống -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"
+                    style="background: linear-gradient(135deg, var(--accent-red), #dc2626); border-bottom: none;">
+                    <h5 class="modal-title fw-bold text-white" id="importModalLabel">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Cảnh báo Ghi đè Hệ thống
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('admin.import_system') }}" method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <div class="modal-body">
+                        <p class="text-muted small">Hành động này sẽ <strong>GHI ĐÈ</strong> toàn bộ Database, file
+                            Upload và Thùng rác hiện tại bằng dữ liệu từ file ZIP. Hãy chắc chắn bạn đã trích xuất một
+                            bản dự phòng trước khi thực hiện.</p>
+                        <div class="mb-3">
+                            <label for="backup_file" class="form-label fw-bold">Chọn file sao lưu (.zip):</label>
+                            <input class="form-control" type="file" id="backup_file" name="backup_file" accept=".zip"
+                                required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-danger">Tiến hành Phục hồi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    {# ====== UNAUTHENTICATED LAYOUT (Login page) ====== #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div style="position:fixed;top:1rem;right:1rem;z-index:9999;width:400px;">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show animate-fade" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% block login_content %}{% endblock %}
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Theme toggle
+            const toggler = document.getElementById('theme-toggler');
+            const icon = document.getElementById('theme-icon');
+            const htmlEl = document.documentElement;
+
+            if (toggler) {
+                const currentTheme = htmlEl.getAttribute('data-bs-theme');
+                icon.className = currentTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+
+                toggler.addEventListener('click', () => {
+                    const newTheme = htmlEl.getAttribute('data-bs-theme') === 'light' ? 'dark' : 'light';
+                    htmlEl.setAttribute('data-bs-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    icon.className = newTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                });
+            }
+
+            // Mobile sidebar toggle
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('appSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+
+            if (sidebarToggle && sidebar && overlay) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('show');
+                    overlay.classList.toggle('show');
+                });
+
+                overlay.addEventListener('click', () => {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                });
+            }
+        });
+    </script>
+
+    <!-- Script hiện có của giao diện giữ nguyên -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // ... (các sự kiện Theme toggle, Mobile sidebar giữ nguyên) ...
+        });
+    </script>
+
+    <!-- [THÊM MỚI]: BỘ ĐẾM 15 PHÚT KHÔNG THAO TÁC Ở CLIENT -->
+    {% if current_user.is_authenticated %}
+    <script>
+        let idleTime = 0;
+        const idleLimit = 15 * 60; // 15 phút = 900 giây
+
+        function resetIdleTimer() {
+            idleTime = 0;
+        }
+
+        // Lắng nghe các thao tác của người dùng để làm mới bộ đếm
+        ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, resetIdleTimer, { passive: true });
+        });
+
+        // Mỗi giây cộng thêm 1, nếu chạm mốc 900 giây thì tự động gọi Route Logout
+        setInterval(() => {
+            idleTime++;
+            if (idleTime >= idleLimit) {
+                window.location.href = "{{ url_for('auth.logout') }}";
+            }
+        }, 1000);
+    </script>
+    {% endif %}
+</body>
+
+</html>

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header animate-in">
+    <div>
+        <h1 class="page-title">
+            <i class="fa-solid fa-users-gear"></i> Tài khoản & Phân quyền
+        </h1>
+        <p class="page-subtitle">Quản lý tài khoản người dùng và phân quyền truy cập hệ thống.</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="fa-solid fa-user-plus me-1"></i> Tạo tài khoản mới
+    </button>
+</div>
+
+<!-- Users Table -->
+<div class="card border-0 animate-in stagger-2">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Tài khoản</th>
+                        <th>Phân quyền</th>
+                        <th class="text-end pe-4">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td class="ps-4 text-muted-custom font-mono">#{{ user.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="sidebar-avatar role-{{ user.role }}"
+                                    style="width:28px;height:28px;font-size:0.65rem;border-radius:6px;">
+                                    {{ user.username[0]|upper }}
+                                </div>
+                                <span class="fw-bold">{{ user.username }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            {% if user.role == 'admin' %}
+                            <span class="badge badge-red"><i class="fa-solid fa-shield-halved me-1"></i>Quản trị
+                                viên</span>
+                            {% elif user.role == 'editor' %}
+                            <span class="badge badge-blue"><i class="fa-solid fa-pen-to-square me-1"></i>Biên tập
+                                viên</span>
+                            {% else %}
+                            <span class="badge badge-muted"><i class="fa-solid fa-eye me-1"></i>Chỉ xem</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if user.username != 'admin' %}
+                            <button class="btn btn-sm btn-outline-primary me-1 btn-edit" title="Sửa tài khoản"
+                                data-id="{{ user.id }}" data-username="{{ user.username }}" data-role="{{ user.role }}"
+                                data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <form id="delete-form-{{ user.id }}"
+                                action="{{ url_for('auth.delete_user', user_id=user.id) }}" method="POST"
+                                class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete"
+                                    title="Xóa tài khoản" data-id="{{ user.id }}" data-username="{{ user.username }}">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted-custom small font-mono">Mặc định</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tạo -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-user-plus text-accent me-2"></i>Tạo tài khoản mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('auth.add_user') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên đăng nhập</label>
+                        <input type="text" class="form-control" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quyền hạn</label>
+                        <select class="form-select" name="role" required>
+                            <option value="editor">Biên tập viên (Editor — Thêm/Sửa/Xóa dữ liệu)</option>
+                            <option value="viewer">Chỉ xem (Viewer — Chỉ xem và so sánh)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary">Xác nhận tạo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sửa -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-pen text-accent me-2"></i>Sửa tài khoản: <span
+                        id="edit-username-display" class="text-accent"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="edit-user-form" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên đăng nhập</label>
+                        <input type="text" class="form-control" name="username" id="edit-username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mật khẩu mới (Để trống nếu không đổi)</label>
+                        <input type="password" class="form-control" name="password" placeholder="••••••••">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Quyền hạn</label>
+                        <select class="form-select" name="role" id="edit-role" required>
+                            <option value="editor">Biên tập viên (Editor)</option>
+                            <option value="viewer">Chỉ xem (Viewer)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.btn-edit').forEach(button => {
+            button.addEventListener('click', function () {
+                const userId = this.getAttribute('data-id');
+                const username = this.getAttribute('data-username');
+                const role = this.getAttribute('data-role');
+                document.getElementById('edit-username-display').textContent = username;
+                document.getElementById('edit-username').value = username;
+                document.getElementById('edit-role').value = role;
+                document.getElementById('edit-user-form').action = `/users/edit/${userId}`;
+            });
+        });
+
+        document.querySelectorAll('.btn-delete').forEach(button => {
+            button.addEventListener('click', function () {
+                const userId = this.getAttribute('data-id');
+                const username = this.getAttribute('data-username');
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    text: `Bạn có chắc chắn muốn xóa tài khoản "${username}" không? Hành động này không thể hoàn tác.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Đồng ý xóa',
+                    cancelButtonText: 'Hủy bỏ',
+                    background: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#111827' : '#ffffff',
+                    color: document.documentElement.getAttribute('data-bs-theme') === 'dark' ? '#f1f5f9' : '#0f172a'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById(`delete-form-${userId}`).submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}
